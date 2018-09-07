@@ -86,6 +86,49 @@ export class AntiCaptcha {
     }
 
     /**
+     * Dispatch a task creation to the service. This will return a taskId.
+     *
+     * @param {string} body - File body encoded in base64. Make sure to send it without line breaks.
+     * @param {boolean} phrase - If true, worker must enter an answer with at least one "space".
+     * @param {boolean} caseSensitivie - If true, worker will see a special mark telling that answer must be entered with case sensitivity.
+     * @param {number} numeric - 0 - no requirements, 1 - only number are allowed, 2 - any letters are allowed except numbers
+     * @param {boolean} math - If true, worker will see a special mark telling that answer must be calculated.
+     * @param {number} minLength - Defines minimum length of the answer. 0 = No requirements.
+     * @param {number} maxLength - Defines maximum length of the answer. 0 = No requirements.
+     * @param {string} comment - Additional comment for workers like "enter letters in red color". Result is not guaranteed.
+     * @param {string} languagePool - The language pool. Default to English if not provided.
+     *
+     * @returns {Promise<number>}
+     * @memberof AntiCaptcha
+     */
+    public async createImageToTextTask(body: string, phrase: boolean = false, caseSensitivie: boolean = false,
+        numeric: number = 0, math: boolean = false,  minLength: number = 0, maxLength: number = 0, comment: string = "",
+        languagePool: string = "en")
+    {
+        const response = await this.api.post("createTask", {
+            languagePool,
+            task: {
+                type: TaskTypes.RECAPTCHA_PROXYLESS,
+                body : body,
+                phrase: phrase,
+                case: caseSensitivie,
+                numeric: numeric,
+                math : math,
+                minLength : minLength,
+                maxLength : maxLength,
+                comment: comment
+            },
+        }) as ApiResponse<ICreateTaskResponse>;
+
+        if (response.ok && response.data.errorId === 0) {
+            if (this.debug) { console.log(`Task [ ${response.data.taskId} ] - Created`); }
+            return response.data.taskId;
+        }
+
+        throw new Error(response.data.errorDescription);
+    }
+
+    /**
      * Check a task to be resolved. Will try for given amount at the give time interval.
      *
      * @param {number} taskId - The task ID you want to check result.
